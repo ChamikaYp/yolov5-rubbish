@@ -23,18 +23,6 @@
 !setup.cfg
 !cfg/yolov3*.cfg
 
-storage.googleapis.com
-data/*
-data/images/*
-!data/*.yaml
-!data/hyps
-!data/scripts
-!data/images
-!data/images/zidane.jpg
-!data/images/bus.jpg
-!data/*.sh
-
-results*.csv
 
 # Datasets -------------------------------------------------------------------------------------------------------------
 coco/
@@ -47,7 +35,6 @@ VOC/
 !targets*.mat
 
 # Neural Network weights -----------------------------------------------------------------------------------------------
-*.weights
 *.pt
 *.pb
 *.onnx
