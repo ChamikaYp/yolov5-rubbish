@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Processing Status</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">YoloV5 Rubbish Detector</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">Upload Files</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/camera' %}active{% endif %}" href="/camera">Live Feed</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/objects' %}active{% endif %}" href="/objects">Database</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">File Upload</h1>
+
+        <!-- Form to upload a new video or image -->
+        <div class="card p-4 shadow-sm mb-4">
+            <form action="/upload" method="post" enctype="multipart/form-data" class="d-flex justify-content-between align-items-center">
+                <input class="form-control" type="file" name="file" accept="video/*,image/*">
+                <button type="submit" class="btn btn-primary ms-3">Upload File</button>
+            </form>
+        </div>
+
+        <h2 class="mb-4">Uploaded Files</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="file-table-body">
+                    <!-- File data will be loaded here by checkFileStatus() -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bootstrap Modal for Video or Image Viewer -->
+    <div class="modal fade" id="fileModal" tabindex="-1" aria-labelledby="fileModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="fileModalLabel">File Viewer</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Dynamically insert video or image here -->
+            <div id="fileContent"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS (for modals and other components) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript to dynamically load the video or image in the modal -->
+    <script>
+        function showFile(filename, fileType) {
+            let fileContent = document.getElementById('fileContent');
+            fileContent.innerHTML = '';  // Clear previous content
+
+            if (fileType === 'video') {
+                // Show video player
+                fileContent.innerHTML = `
+                    <video id="videoPlayer" width="100%" controls>
+                        <source src="/uploads/${filename}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+            } else if (fileType === 'image') {
+                // Show image
+                fileContent.innerHTML = `<img src="/uploads/${filename}" class="img-fluid" alt="${filename}">`;
+            }
+        }
+
+        // Function to check the status of videos and images and update the table
+        function checkFileStatus() {
+            fetch("/get_video_status")
+            .then(response => response.json())
+            .then(data => {
+                let tableBody = document.getElementById("file-table-body");
+                tableBody.innerHTML = "";  // Clear existing rows
+                Object.keys(data).forEach(filename => {
+                    let row = `<tr>
+                                <td>${filename}</td>
+                                <td><span class="badge bg-${data[filename].status === 'processed' ? 'success' : 'warning'}">
+                                    ${data[filename].status.charAt(0).toUpperCase() + data[filename].status.slice(1)}
+                                </span></td>
+                                <td>${data[filename].status === 'processed' ? 
+                                    (data[filename].type === 'video' ? 
+                                        '<button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#fileModal" onclick="showFile(\'' + filename + '\', \'video\')">View Video</button>' :
+                                        '<button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#fileModal" onclick="showFile(\'' + filename + '\', \'image\')">View Image</button>'
+                                    ) : 
+                                    '<span class="text-muted">Processing...</span>'}
+                                </td>
+                              </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            });
+        }
+
+        // Call this function when the page loads and every 5 seconds to update the status
+        window.onload = function() {
+            checkFileStatus();  // Run it once when the page loads
+            setInterval(checkFileStatus, 5000);  // Then run it every 5 seconds
+        };
+    </script>
+</body>
+</html>

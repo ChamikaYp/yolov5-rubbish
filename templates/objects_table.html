@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detected Objects</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">YoloV5 Rubbish Detector</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">Upload Files</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/camera' %}active{% endif %}" href="/camera">Live Feed</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/objects' %}active{% endif %}" href="/objects">Database</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="text-center">Detected Objects</h1>
+            <button id="fetchAddressBtn" class="btn btn-primary">Fetch Addresses</button>
+        </div>
+
+        <!-- Table to display objects -->
+        <table class="table table-striped table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Object</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for object in objects %}
+                <tr>
+                    <td>{{ object[0] }}</td> <!-- ID/Row Number -->
+                    <td>{{ object[1] }}</td> <!-- Object Class -->
+                    <td class="lat">{{ object[2] }}</td> <!-- Latitude -->
+                    <td class="lon">{{ object[3] }}</td> <!-- Longitude -->
+                    <td class="address">Not fetched</td> <!-- Address (to be fetched) -->
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bootstrap JS (including Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript to reverse geocode and get the address -->
+    <script>
+        // Function to fetch the address using Nominatim API
+        function reverseGeocode(lat, lon, callback) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        callback(data.display_name); // Return the address
+                    } else {
+                        callback("Address not found");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching address:', error);
+                    callback("Error fetching address");
+                });
+        }
+
+        // Function to update the table with addresses
+        function updateTableWithAddresses() {
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const lat = row.querySelector('.lat').innerText;
+                const lon = row.querySelector('.lon').innerText;
+                const addressCell = row.querySelector('.address');
+
+                // Call reverse geocode function to get the address
+                reverseGeocode(lat, lon, function(address) {
+                    addressCell.innerText = address; // Update the cell with the fetched address
+                });
+            });
+        }
+
+        // Event listener for the "Fetch Addresses" button
+        document.getElementById('fetchAddressBtn').addEventListener('click', function() {
+            updateTableWithAddresses();  // Fetch and update addresses when the button is clicked
+        });
+    </script>
+</body>
+</html>
